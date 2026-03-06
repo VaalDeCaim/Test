@@ -5,14 +5,9 @@ Next.js 16 frontend for the bank statement converter app. Uses Hero UI v3, Auth0
 ## Setup
 
 1. Copy `.env.example` to `.env.local`
-2. Configure Auth0:
-   - Create a Regular Web Application in Auth0
-   - Set `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`
-   - Add `http://localhost:3000/auth/callback` to Allowed Callback URLs
-   - Add `http://localhost:3000` to Allowed Logout URLs
-   - Enable Email and Google in Auth0 Dashboard
-3. Set `APP_BASE_URL=http://localhost:3000`
-4. Set `NEXT_PUBLIC_API_URL` to your backend (default `http://localhost:3001`)
+2. **Dev bypass (no Auth0)**: Set `DEV_AUTH_BYPASS=true` and `NEXT_PUBLIC_DEV_AUTH_BYPASS=true`. Sign in with `test@gmail.com` / `123456`. Backend should have `AUTH_DISABLED=true` to accept requests. Only works when `NODE_ENV !== 'production'`.
+3. **Auth0** (for production): Create a Regular Web Application, set `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, add callback/logout URLs, enable Email + Google.
+4. Set `APP_BASE_URL=http://localhost:3000` and `NEXT_PUBLIC_API_URL` (default `http://localhost:3001`)
 5. Generate `AUTH0_SECRET`: `openssl rand -hex 32`
 
 ## Run
@@ -34,7 +29,7 @@ npm start
 ## Pages
 
 - `/` - Landing page (public)
-- `/auth/login` - Auth0 login
+- `/auth/login` - Auth0 login (or `/auth/dev-login` when dev bypass)
 - `/convert` - Convert bank statements (protected)
 - `/history` - Conversion history (protected)
 - `/topup` - Buy coins / Pro subscription (protected)

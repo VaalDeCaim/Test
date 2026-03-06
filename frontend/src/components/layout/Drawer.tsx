@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Separator } from '@heroui/react';
+import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
   { href: '/convert', label: 'Convert' },
@@ -13,6 +14,7 @@ const navItems = [
 
 export function Drawer() {
   const pathname = usePathname();
+  const { logoutUrl } = useAuth();
 
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
@@ -38,11 +40,11 @@ export function Drawer() {
             Settings
           </Button>
         </Link>
-        <Link href="/auth/logout" className="block">
+        <a href={logoutUrl} className="block">
           <Button variant="danger" className="w-full justify-start">
             Log out
           </Button>
-        </Link>
+        </a>
       </div>
     </aside>
   );

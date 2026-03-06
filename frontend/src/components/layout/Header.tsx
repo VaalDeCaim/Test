@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { Button } from '@heroui/react';
-import { useUser } from '@auth0/nextjs-auth0/client';
+import { useAuth } from '@/hooks/use-auth';
 
 export function Header() {
-  const { user, isLoading } = useUser();
+  const { user, isLoading, loginUrl } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -28,10 +28,10 @@ export function Header() {
               <a href="#faq" className="text-sm font-medium hover:underline">
                 FAQ
               </a>
-              <Link href="/auth/login">
+              <Link href={loginUrl}>
                 <Button variant="primary">Log in</Button>
               </Link>
-              <Link href="/auth/login?screen_hint=signup">
+              <Link href={loginUrl === '/auth/dev-login' ? loginUrl : `${loginUrl}?screen_hint=signup`}>
                 <Button variant="primary">Create account</Button>
               </Link>
             </>

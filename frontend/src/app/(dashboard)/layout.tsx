@@ -1,5 +1,5 @@
 import { Drawer } from '@/components/layout/Drawer';
-import { auth0 } from '@/lib/auth0';
+import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({
@@ -7,9 +7,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth0.getSession();
+  const session = await getSession();
   if (!session?.user) {
-    redirect('/auth/login?returnTo=/convert');
+    const loginPath =
+      process.env.DEV_AUTH_BYPASS === 'true' ? '/auth/dev-login' : '/auth/login';
+    redirect(`${loginPath}?returnTo=/convert`);
   }
 
   return (

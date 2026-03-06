@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser } from '@auth0/nextjs-auth0/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, Spinner } from '@heroui/react';
 import { api } from '@/lib/api';
 
 export default function SettingsPage() {
-  const { user, isLoading } = useUser();
+  const { user, isLoading } = useAuth();
   const [profile, setProfile] = useState<{ balance?: { coins: number }; subscription?: { plan?: string } } | null>(null);
 
   useEffect(() => {

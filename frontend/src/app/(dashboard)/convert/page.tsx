@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser } from '@auth0/nextjs-auth0/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Button, Card, CardContent, CardHeader, Spinner } from '@heroui/react';
 import { api } from '@/lib/api';
 
 export default function ConvertPage() {
-  const { user, isLoading: userLoading } = useUser();
+  const { user, isLoading: userLoading } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
