@@ -25,7 +25,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (isPublic) {
       return true;
     }
-    if (this.config.get<string>('AUTH_DISABLED') === 'true') {
+    const authDisabled =
+      this.config.get<string>('AUTH_DISABLED') === 'true' &&
+      this.config.get<string>('NODE_ENV') !== 'production';
+    if (authDisabled) {
       const request = context.switchToHttp().getRequest<{ user: object }>();
       request.user = {
         sub: 'dev-user',

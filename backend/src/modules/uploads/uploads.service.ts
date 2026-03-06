@@ -10,10 +10,12 @@ export class UploadsService {
   async initUpload(
     dto: InitUploadDto,
   ): Promise<{ uploadUrl: string; key: string }> {
+    const allowedExt = ['.mt940', '.xml', '.camt053'];
     const ext = dto.filename.includes('.')
-      ? dto.filename.slice(dto.filename.lastIndexOf('.'))
+      ? dto.filename.slice(dto.filename.lastIndexOf('.')).toLowerCase()
       : '';
-    const key = `uploads/${randomUUID()}${ext}`;
+    const safeExt = allowedExt.includes(ext) ? ext : '.mt940';
+    const key = `uploads/${randomUUID()}${safeExt}`;
 
     const uploadUrl = await this.storage.getPresignedPutUrl(
       key,
