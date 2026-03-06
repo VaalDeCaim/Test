@@ -49,6 +49,20 @@ export class Job {
   @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage: string | null;
 
+  @Column({
+    name: 'validation_errors',
+    type: 'jsonb',
+    default: () => "'[]'",
+  })
+  validationErrors: string[];
+
+  @Column({
+    name: 'validation_warnings',
+    type: 'jsonb',
+    default: () => "'[]'",
+  })
+  validationWarnings: string[];
+
   @Column({ name: 'export_key_csv', nullable: true })
   exportKeyCsv: string | null;
 

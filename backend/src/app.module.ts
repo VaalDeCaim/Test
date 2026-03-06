@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuthModule } from './modules/auth/auth.module';
@@ -8,7 +9,16 @@ import { StorageModule } from './modules/storage/storage.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { ExportsModule } from './modules/exports/exports.module';
-import { Job } from './entities/job.entity';
+import { BillingModule } from './modules/billing/billing.module';
+import { RetentionModule } from './modules/retention/retention.module';
+import {
+  Job,
+  UserProfile,
+  Balance,
+  Subscription,
+  SubscriptionHistory,
+  CoinTransaction,
+} from './entities';
 
 @Module({
   imports: [
@@ -16,10 +26,18 @@ import { Job } from './entities/job.entity';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [Job],
+      entities: [
+        Job,
+        UserProfile,
+        Balance,
+        Subscription,
+        SubscriptionHistory,
+        CoinTransaction,
+      ],
       synchronize: false,
       migrations: ['dist/database/migrations/*.js'],
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -31,6 +49,8 @@ import { Job } from './entities/job.entity';
     UploadsModule,
     JobsModule,
     ExportsModule,
+    BillingModule,
+    RetentionModule,
   ],
   controllers: [AppController],
 })

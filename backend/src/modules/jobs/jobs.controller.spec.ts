@@ -25,7 +25,9 @@ describe('JobsController', () => {
   });
 
   it('should create job', async () => {
-    const dto: CreateJobDto = { key: 'uploads/abc.mt940' };
+    const dto: CreateJobDto = {
+      key: 'uploads/550e8400-e29b-41d4-a716-446655440000.mt940',
+    };
     const job = { id: 'job-1', rawKey: dto.key, status: 'pending' };
     mockJobsService.create.mockResolvedValue(job);
 

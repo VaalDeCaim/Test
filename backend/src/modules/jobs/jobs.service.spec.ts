@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { JobsService } from './jobs.service';
 import { Job, JobStatus } from '../../entities/job.entity';
 import { StorageService } from '../storage/storage.service';
+import { BillingService } from '../billing/billing.service';
 import { CreateJobDto } from './dto/create-job.dto';
 
 const mockJobRepo = {
@@ -19,6 +20,12 @@ const mockStorageService = {
   getExportsBucket: jest.fn().mockReturnValue('exports'),
 };
 
+const mockBillingService = {
+  hasProAccess: jest.fn().mockResolvedValue(false),
+  getBalance: jest.fn().mockResolvedValue(10),
+  deductCoins: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('JobsService', () => {
   let service: JobsService;
 
@@ -26,12 +33,16 @@ describe('JobsService', () => {
     jest.clearAllMocks();
     mockJobRepo.findOne.mockResolvedValue(null);
     mockJobRepo.find.mockResolvedValue([]);
+    mockBillingService.hasProAccess.mockResolvedValue(false);
+    mockBillingService.getBalance.mockResolvedValue(10);
+    mockBillingService.deductCoins.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JobsService,
         { provide: getRepositoryToken(Job), useValue: mockJobRepo },
         { provide: StorageService, useValue: mockStorageService },
+        { provide: BillingService, useValue: mockBillingService },
       ],
     }).compile();
 
@@ -39,18 +50,37 @@ describe('JobsService', () => {
   });
 
   describe('create', () => {
-    it('should create and return a job', async () => {
-      const dto: CreateJobDto = { key: 'uploads/abc.mt940' };
+    it('should create and return a job (deducts coins when not Pro)', async () => {
+      const dto: CreateJobDto = {
+        key: 'uploads/550e8400-e29b-41d4-a716-446655440000.mt940',
+      };
       const result = await service.create('user-1', dto);
       expect(result.id).toBe('job-123');
-      expect(mockJobRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 'user-1',
-          rawKey: 'uploads/abc.mt940',
-          status: JobStatus.PENDING,
-        }),
+      expect(mockBillingService.deductCoins).toHaveBeenCalledWith(
+        'user-1',
+        1,
+        expect.any(String),
       );
       expect(mockJobRepo.save).toHaveBeenCalled();
+    });
+
+    it('should not deduct coins when user has Pro', async () => {
+      mockBillingService.hasProAccess.mockResolvedValue(true);
+      const dto: CreateJobDto = {
+        key: 'uploads/550e8400-e29b-41d4-a716-446655440000.mt940',
+      };
+      await service.create('user-1', dto);
+      expect(mockBillingService.deductCoins).not.toHaveBeenCalled();
+    });
+
+    it('should throw when insufficient coins', async () => {
+      mockBillingService.getBalance.mockResolvedValue(0);
+      const dto: CreateJobDto = {
+        key: 'uploads/550e8400-e29b-41d4-a716-446655440000.mt940',
+      };
+      await expect(service.create('user-1', dto)).rejects.toThrow(
+        'Insufficient coins',
+      );
     });
   });
 

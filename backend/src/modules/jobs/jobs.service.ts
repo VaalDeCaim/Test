@@ -1,20 +1,31 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job, JobStatus, JobFormat } from '../../entities/job.entity';
 import { StorageService } from '../storage/storage.service';
+import { BillingService } from '../billing/billing.service';
 import { CreateJobDto } from './dto/create-job.dto';
+
+const COINS_PER_JOB = 1;
 import { Camt053Parser } from '../../parsers/camt053.parser';
 import { Mt940Parser } from '../../parsers/mt940.parser';
 import { detectFormat } from '../../parsers/format-detector';
+import type { ParseResult } from '../../parsers/transaction.model';
 import { exportToCsv } from '../../exporters/csv.exporter';
 import { exportToXlsx } from '../../exporters/xlsx.exporter';
 import { exportToQbo } from '../../exporters/qbo.exporter';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { CoinTransactionType } from '../../entities/coin-transaction.entity';
 
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
   private readonly camtParser = new Camt053Parser();
   private readonly mt940Parser = new Mt940Parser();
 
@@ -22,9 +33,20 @@ export class JobsService {
     @InjectRepository(Job)
     private readonly jobRepo: Repository<Job>,
     private readonly storage: StorageService,
+    private readonly billing: BillingService,
   ) {}
 
   async create(userId: string, dto: CreateJobDto): Promise<Job> {
+    const hasPro = await this.billing.hasProAccess(userId);
+    if (!hasPro) {
+      const balance = await this.billing.getBalance(userId);
+      if (balance < COINS_PER_JOB) {
+        throw new ForbiddenException(
+          'Insufficient coins. Top up your balance or subscribe to Pro.',
+        );
+      }
+    }
+
     const job = this.jobRepo.create({
       userId,
       rawKey: dto.key,
@@ -33,8 +55,12 @@ export class JobsService {
     });
     await this.jobRepo.save(job);
 
-    this.processJob(job.id).catch((err) => {
-      console.error(`Job ${job.id} failed:`, err);
+    if (!hasPro) {
+      await this.billing.deductCoins(userId, COINS_PER_JOB, job.id);
+    }
+
+    this.processJob(job.id, !hasPro).catch(() => {
+      this.logger.warn(`Job ${job.id} failed`, { jobId: job.id });
     });
 
     return job;
@@ -53,11 +79,13 @@ export class JobsService {
     });
   }
 
-  async processJob(jobId: string): Promise<void> {
+  async processJob(jobId: string, refundOnFailure = false): Promise<void> {
     const job = await this.jobRepo.findOne({ where: { id: jobId } });
     if (!job || job.status !== JobStatus.PENDING) return;
 
     await this.jobRepo.update(jobId, { status: JobStatus.PROCESSING });
+
+    let parseResult: ParseResult | null = null;
 
     try {
       const content = await this.fetchFileContent(job.rawKey);
@@ -65,7 +93,7 @@ export class JobsService {
 
       await this.jobRepo.update(jobId, { format });
 
-      const parseResult =
+      parseResult =
         format === JobFormat.CAMT053
           ? this.camtParser.parse(content)
           : this.mt940Parser.parse(content);
@@ -100,12 +128,26 @@ export class JobsService {
         exportKeyXlsx: baseKey + '.xlsx',
         exportKeyQbo: baseKey + '.qbo',
         errorMessage: null,
+        validationErrors: parseResult.errors,
+        validationWarnings: parseResult.warnings,
       });
     } catch (err) {
+      const errorMsg = (err as Error).message;
       await this.jobRepo.update(jobId, {
         status: JobStatus.FAILED,
-        errorMessage: (err as Error).message,
+        errorMessage: errorMsg,
+        validationErrors: parseResult?.errors ?? [],
+        validationWarnings: parseResult?.warnings ?? [],
       });
+      if (refundOnFailure) {
+        await this.billing.addCoins(
+          job.userId,
+          COINS_PER_JOB,
+          CoinTransactionType.REFUND,
+          undefined,
+          jobId,
+        );
+      }
     }
   }
 

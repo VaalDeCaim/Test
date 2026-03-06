@@ -1,11 +1,15 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+    bufferLogs: true,
+  });
 
   app.use(helmet());
   app.enableCors({
@@ -29,6 +33,18 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
+  if (
+    process.env.AUTH_DISABLED === 'true' &&
+    process.env.NODE_ENV === 'production'
+  ) {
+    throw new Error('AUTH_DISABLED must not be used in production');
+  }
+  if (process.env.AUTH_DISABLED === 'true') {
+    console.warn(
+      'WARNING: AUTH_DISABLED=true - authentication bypassed (dev only)',
+    );
+  }
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
