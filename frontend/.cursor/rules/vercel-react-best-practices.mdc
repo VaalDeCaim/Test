@@ -1,0 +1,29 @@
+---
+description: Follow Vercel React and Next.js performance best practices when writing or refactoring React/Next.js code.
+globs: ["src/**/*.tsx", "src/**/*.ts"]
+alwaysApply: false
+---
+
+# Vercel React Best Practices
+
+When writing, reviewing, or refactoring React/Next.js code in this project, apply the **Vercel React best practices** (57 rules in 8 categories). Use them for components, pages, data fetching, and performance.
+
+## Priority order
+
+1. **Eliminating waterfalls** — Parallelize with `Promise.all`, move `await` into branches, use Suspense.
+2. **Bundle size** — Direct imports (no barrel files), `next/dynamic` for heavy components, defer third-party scripts.
+3. **Server-side** — Auth on server actions, `React.cache()` for request dedup, minimize RSC payload.
+4. **Client data** — SWR for dedup, passive scroll listeners, versioned localStorage.
+5. **Re-renders** — Memoize expensive subtrees, primitive effect deps, `startTransition` for non-urgent updates.
+6. **Rendering** — Static JSX outside components, `content-visibility` for long lists, ternary (not `&&`) for conditionals.
+7. **JS performance** — Batch DOM/CSS, Maps for lookups, cache in loops, early exit.
+8. **Advanced** — Refs for handlers, init once per app load.
+
+## When you need the full guide
+
+For detailed rule text and correct/incorrect examples, fetch:
+
+- **Full guide:** `https://raw.githubusercontent.com/vercel-labs/agent-skills/main/skills/react-best-practices/AGENTS.md`
+- **Single rule:** `https://raw.githubusercontent.com/vercel-labs/agent-skills/main/skills/react-best-practices/rules/{rule-name}.md`
+
+Apply the guide’s patterns and explain tradeoffs when suggesting changes.

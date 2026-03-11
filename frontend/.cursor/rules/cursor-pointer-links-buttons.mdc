@@ -1,0 +1,47 @@
+---
+description: Ensure all links and buttons show pointer cursor on hover
+globs: ["src/**/*.tsx", "src/**/*.ts"]
+alwaysApply: false
+---
+
+# Cursor Pointer on Interactive Elements
+
+All clickable elements (links, buttons, logo/home that navigates) must show `cursor: pointer` on hover so users see they are interactive.
+
+## Rules
+
+- **Native `<button>`**: Add `cursor-pointer` to the className (or ensure your shared `Button` component includes it in its base styles).
+- **`<a>` or Next.js `<Link>`**: Add `cursor-pointer` if your global styles don’t already give links a pointer cursor.
+- **Clickable non-button elements** (e.g. `<span>` or `<div>` with `onClick`, or wrapper around logo that navigates): Always add `cursor-pointer`.
+- **Shared components**: Prefer adding `cursor-pointer` in the base component (e.g. `Button`) so all usages get it.
+
+## Examples
+
+```tsx
+// ✅ GOOD – button has cursor-pointer (in base class or here)
+<button type="button" className="cursor-pointer ..." onClick={...}>
+  Sign up
+</button>
+
+// ✅ GOOD – Link with explicit pointer
+<Link href="/login" className="cursor-pointer ...">
+  Log in
+</Link>
+
+// ✅ GOOD – clickable non-button
+<span className="cursor-pointer ..." onClick={onLogoClick} role="button">
+  Logo
+</span>
+
+// ❌ BAD – clickable element without pointer
+<button type="button" className="rounded-full px-5 ..." onClick={...}>
+  Sign up
+</button>
+```
+
+## Checklist
+
+When adding or editing a link or button:
+
+- [ ] Element has `cursor-pointer` (Tailwind) or `cursor: pointer` (CSS).
+- [ ] If it’s a shared `Button`/link component, the base styles include the pointer cursor.

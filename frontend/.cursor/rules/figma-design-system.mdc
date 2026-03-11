@@ -1,0 +1,99 @@
+---
+description: Rules for implementing Figma designs using the Figma MCP server. Covers component organization, styling conventions, design tokens, asset handling, and the required Figma-to-code workflow for StatementFlow frontend.
+globs: ["src/components/**", "src/app/**"]
+alwaysApply: false
+---
+
+# Figma Design System Rules – StatementFlow Frontend
+
+## Design System Structure
+
+### Token Definitions
+
+- Design tokens are defined in `src/app/globals.css`.
+- **Colors:** `:root` exposes `--background` and `--foreground`; light/dark are switched via `@media (prefers-color-scheme: dark)`.
+- **Theme mapping:** `@theme inline` maps CSS variables for Tailwind: `--color-background`, `--color-foreground`, `--font-sans` (Geist), `--font-mono` (Geist Mono).
+- **IMPORTANT:** Prefer Tailwind theme colors `bg-background`, `text-foreground` and semantic zinc utilities (`text-zinc-600`, `dark:text-zinc-400`, `border-zinc-200`, `dark:border-zinc-800`) over hardcoded hex. Add new tokens to `globals.css` and `@theme inline` when the design system grows.
+
+### Component Library
+
+- **UI primitives:** `src/components/ui/` — Button, Input, Appear, PageAppear, ScrollReveal.
+- **Layout:** `src/components/layout/` — SiteHeader, StatementFlowLogo.
+- **Feature areas:** `src/components/auth/`, `src/components/dashboard/`, `src/components/landing/`.
+- **IMPORTANT:** Reuse `Button` from `@/components/ui/button` with `variant?: "primary" | "secondary" | "ghost"` and `Input` from `@/components/ui/input` instead of building new form controls.
+- New UI components belong in `src/components/ui/`; feature-specific components in the appropriate folder (auth, dashboard, landing).
+- Components use PascalCase and default export is not required; named exports are used (e.g. `export function Button`).
+- **IMPORTANT:** All interactive components that use hooks or browser APIs must start with `"use client";`.
+
+### Frameworks & Libraries
+
+- **Stack:** Next.js 16 (App Router), React 19, TypeScript.
+- **Styling:** Tailwind CSS v4 (`@import "tailwindcss"` in `globals.css`).
+- **Utilities:** `clsx` for conditional `className` composition.
+- **Icons:** `lucide-react` — use named imports (e.g. `FileCheckCorner`). Do not add new icon packages; use Lucide or assets from Figma.
+
+### Styling Approach
+
+- Use Tailwind utility classes only; no inline styles for layout/colors.
+- Prefer semantic tokens: `bg-background`, `text-foreground`, and zinc scale for borders/secondary text (`zinc-200`, `zinc-600`, `dark:zinc-800`, etc.).
+- Global styles and theme are in `src/app/globals.css`; body uses `var(--background)` and `var(--foreground)`.
+- Responsive: use Tailwind breakpoints (`md:`, `lg:`) and mobile-first classes.
+- Rounded corners: prefer `rounded-full` for pills/buttons, `rounded-xl` or `rounded-2xl` for cards/inputs to match existing UI.
+
+### Project Structure & Imports
+
+- Use path alias `@/` for all internal imports: `@/components/`, `@/lib/`.
+- Group imports: React/Next, third-party, then `@/` (components, lib).
+- App routes live under `src/app/` (page.tsx, layout.tsx).
+
+---
+
+## Figma MCP Integration Rules
+
+These rules define how to translate Figma inputs into code for this project and must be followed for every Figma-driven change.
+
+### Required Flow (do not skip)
+
+1. Run **get_design_context** first for the exact node(s) to get the structured representation.
+2. If the response is too large or truncated, run **get_metadata** to get the high-level node map, then re-fetch only the required node(s) with **get_design_context**.
+3. Run **get_screenshot** for a visual reference of the node variant being implemented.
+4. Only after you have both **get_design_context** and **get_screenshot**, download any assets needed and start implementation.
+5. Translate the output (often React + Tailwind) into this project’s conventions, tokens, and components.
+6. Validate against Figma for 1:1 look and behavior before marking complete.
+
+### Implementation Rules
+
+- Treat Figma MCP output (e.g. React + Tailwind) as design and behavior reference, not as final code style.
+- Replace generic Tailwind with this project’s tokens: `bg-background`, `text-foreground`, zinc palette, and existing component APIs.
+- Reuse components from `@/components/ui/` (Button, Input) and `@/components/layout/` instead of duplicating.
+- Use the project’s color system, typography (Geist via layout), and spacing consistently.
+- Respect existing routing (Next App Router), auth (`@/lib/auth-context`, `getCurrentUser`), and data patterns.
+- Strive for 1:1 visual parity with the Figma design.
+- Validate the final UI against the Figma screenshot for look and behavior.
+
+---
+
+## Asset Handling
+
+- The Figma MCP server can serve image and SVG assets.
+- **IMPORTANT:** If the Figma MCP server returns a localhost source for an image or SVG, use that source directly.
+- **IMPORTANT:** Do not add new icon packages; use `lucide-react` or assets from the Figma payload.
+- **IMPORTANT:** Do not use or create placeholders when a localhost asset URL is provided.
+- Store downloaded static assets in `public/` (e.g. `public/assets/` or next to existing static files).
+
+---
+
+## Component Conventions
+
+- **Props:** Prefer explicit TypeScript types; extend HTML attributes when relevant (e.g. `ButtonHTMLAttributes<HTMLButtonElement>`).
+- **Composition:** Components must accept an optional `className` prop and forward it (e.g. via `clsx(..., className)`).
+- **Variants:** Use union types for variant props (e.g. `variant: "primary" | "secondary" | "ghost"`) and a `Record<..., string>` map for Tailwind classes.
+- **Accessibility:** Use semantic HTML; include `aria-label` or `aria-hidden` where appropriate (see StatementFlowLogo); support focus-visible styles (e.g. `focus-visible:ring-2`).
+
+---
+
+## Project-Specific Conventions
+
+- **Auth:** Use `useUser()` from `@/lib/auth-context` for current user; server data via `getCurrentUser()` from `@/lib/server-data`.
+- **Navigation:** Use `next/navigation` (`useRouter`, `usePathname`) and `next/link` for client and server links.
+- **Forms:** Use existing `Input` and `Button`; handle submit with `FormEvent` and `preventDefault`; avoid unnecessary external form libraries unless specified.
