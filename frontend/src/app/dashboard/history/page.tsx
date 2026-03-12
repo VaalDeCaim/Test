@@ -72,7 +72,9 @@ export default function HistoryPage() {
     isFetchingNextPage,
   } = useJobs(20);
   const jobs = data?.pages.flatMap((page) => page.items) ?? [];
-  const [showAllCaughtUp, setShowAllCaughtUp] = React.useState(false);
+  type RowItem = Job | {id: string; footer: true};
+  const rowItems: RowItem[] =
+    jobs.length > 0 ? [...jobs, {id: "footer", footer: true}] : [];
   const [previewJob, setPreviewJob] = React.useState<Job | null>(null);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [previewData, setPreviewData] = React.useState<
@@ -120,6 +122,7 @@ export default function HistoryPage() {
       addToast({
         title: "Filename copied to clipboard.",
         timeout: 2000,
+        color: "primary",
       });
     } catch {
       addToast({
@@ -130,18 +133,26 @@ export default function HistoryPage() {
     }
   };
 
-  const handleDeleteJob = (job: Job) => {
-    const confirmed = window.confirm(
-      "Remove this conversion from your history? The underlying files will be deleted as well.",
-    );
-    if (!confirmed) return;
+  const [jobToDelete, setJobToDelete] = React.useState<Job | null>(null);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
 
-    deleteJobMutation.mutate(job.id, {
+  const handleDeleteJob = (job: Job) => {
+    setJobToDelete(job);
+    setDeleteOpen(true);
+  };
+
+  const confirmDeleteJob = () => {
+    if (!jobToDelete) return;
+
+    deleteJobMutation.mutate(jobToDelete.id, {
       onSuccess: () => {
         addToast({
           title: "Conversion removed from history.",
           timeout: 2000,
+          color: "success",
         });
+        setDeleteOpen(false);
+        setJobToDelete(null);
       },
       onError: (err: unknown) => {
         const message =
@@ -154,23 +165,6 @@ export default function HistoryPage() {
       },
     });
   };
-
-  React.useEffect(() => {
-    if (!jobs.length) {
-      setShowAllCaughtUp(false);
-      return;
-    }
-
-    if (!hasNextPage && !isFetchingNextPage) {
-      setShowAllCaughtUp(true);
-      const timeout = window.setTimeout(() => {
-        setShowAllCaughtUp(false);
-      }, 3000);
-      return () => window.clearTimeout(timeout);
-    }
-
-    setShowAllCaughtUp(false);
-  }, [jobs.length, hasNextPage, isFetchingNextPage]);
 
   if (isLoading) {
     return (
@@ -203,38 +197,6 @@ export default function HistoryPage() {
         <Table
           aria-label="Conversion history"
           isHeaderSticky
-          bottomContent={
-            jobs.length > 0 ? (
-              <div className="flex items-center justify-center px-4 py-3 text-sm text-default-600">
-                {isFetchingNextPage ? (
-                  <div className="flex items-center gap-3">
-                    <Spinner size="sm" color="default" />
-                    <span>Loading more history…</span>
-                  </div>
-                ) : hasNextPage ? (
-                  <Button
-                    variant="flat"
-                    size="sm"
-                    className="px-4 py-1.5"
-                    onPress={() => {
-                      void fetchNextPage();
-                    }}
-                  >
-                    Load more history
-                  </Button>
-                ) : (
-                  <span
-                    className={`text-center transition-opacity duration-[3000ms] ease-out ${
-                      showAllCaughtUp ? "opacity-30" : "opacity-0"
-                    }`}
-                  >
-                    You&apos;re all caught up. No more conversions to load.
-                  </span>
-                )}
-              </div>
-            ) : null
-          }
-          bottomContentPlacement="inside"
           classNames={{
             base: "min-w-0 table-fixed border border-default-200 rounded-2xl overflow-hidden h-full",
             wrapper: "min-w-0 h-full max-h-full overflow-y-auto",
@@ -258,7 +220,7 @@ export default function HistoryPage() {
             </TableColumn>
           </TableHeader>
           <TableBody
-            items={jobs}
+            items={rowItems}
             emptyContent={
               <div className="px-4 py-12 text-center text-sm text-default-500">
                 You haven&apos;t converted any statements yet. Once you do,
@@ -266,85 +228,125 @@ export default function HistoryPage() {
               </div>
             }
           >
-            {(job) => (
-              <TableRow key={job.id}>
-                <TableCell
-                  className="min-w-0 max-w-[250px] font-medium text-foreground"
-                  style={{maxWidth: 250}}
-                >
-                  <div className="flex items-center gap-2">
-                    <Tooltip content="Copy filename">
-                      <Button
-                        isIconOnly
-                        variant="light"
-                        size="sm"
-                        className="min-w-0 flex-shrink-0"
-                        onPress={() => {
-                          handleCopyFilename(job.fileName);
-                        }}
+            {(item) =>
+              "footer" in item ? (
+                <TableRow key={item.id}>
+                  <TableCell colSpan={5}>
+                    <div className="flex items-center justify-center px-4 py-3 text-sm text-default-600">
+                      {isFetchingNextPage ? (
+                        <div className="flex items-center gap-3">
+                          <Spinner size="sm" color="default" />
+                          <span>Loading more history…</span>
+                        </div>
+                      ) : hasNextPage ? (
+                        <Button
+                          variant="flat"
+                          size="sm"
+                          className="px-4 py-1.5"
+                          onPress={() => {
+                            void fetchNextPage();
+                          }}
+                        >
+                          Load more history
+                        </Button>
+                      ) : (
+                        <span className="text-center">
+                          You&apos;re all caught up. No more conversions to
+                          load.
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <TableRow key={item.id}>
+                  <TableCell
+                    className="min-w-0 max-w-[250px] font-medium text-foreground"
+                    style={{maxWidth: 250}}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Tooltip content="Copy filename">
+                        <Button
+                          isIconOnly
+                          variant="light"
+                          size="sm"
+                          className="min-w-0 flex-shrink-0"
+                          onPress={() => {
+                            handleCopyFilename(item.fileName);
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip
+                        content={item.fileName}
+                        delay={300}
+                        closeDelay={0}
                       >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                    </Tooltip>
-                    <Tooltip content={job.fileName} delay={300} closeDelay={0}>
-                      <span className="block min-w-0 max-w-[250px] truncate">
-                        {job.fileName}
-                      </span>
-                    </Tooltip>
-                  </div>
-                </TableCell>
-                <TableCell className="min-w-[150px] w-[12%] text-default-600">
-                  MT940 → {job.format.toUpperCase()}
-                </TableCell>
-                <TableCell className="text-left" style={{width: 80, maxWidth: 80}}>
-                  <StatusBadge status={job.status} />
-                </TableCell>
-                <TableCell className="min-w-[100px] w-[22%] text-default-600">
-                  {formatDate(job.createdAt)}
-                </TableCell>
-                <TableCell className="min-w-0 w-[18%]">
-                  <Dropdown>
-                    <DropdownTrigger>
-                      <Button
-                        isIconOnly
-                        variant="light"
-                        size="sm"
-                        className="min-w-0"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu aria-label="Job actions">
-                      <DropdownItem
-                        key="download"
-                        startContent={<Download className="h-4 w-4" />}
-                        isDisabled={job.status !== "completed"}
-                        onPress={() => handleDownload(job.id, job.format)}
-                      >
-                        Download
-                      </DropdownItem>
-                      <DropdownItem
-                        key="preview"
-                        startContent={<Eye className="h-4 w-4" />}
-                        isDisabled={job.status !== "completed"}
-                        onPress={() => handlePreview(job)}
-                      >
-                        Preview
-                      </DropdownItem>
-                      <DropdownItem
-                        key="remove"
-                        color="danger"
-                        className="text-danger"
-                        startContent={<Trash2 className="h-4 w-4" />}
-                        onPress={() => handleDeleteJob(job)}
-                      >
-                        Remove from history
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                </TableCell>
-              </TableRow>
-            )}
+                        <span className="block min-w-0 max-w-[250px] truncate">
+                          {item.fileName}
+                        </span>
+                      </Tooltip>
+                    </div>
+                  </TableCell>
+                  <TableCell className="min-w-[150px] w-[12%] text-default-600">
+                    MT940 → {item.format.toUpperCase()}
+                  </TableCell>
+                  <TableCell
+                    className="text-left"
+                    style={{width: 80, maxWidth: 80}}
+                  >
+                    <StatusBadge status={item.status} />
+                  </TableCell>
+                  <TableCell className="min-w-[100px] w-[22%] text-default-600">
+                    {formatDate(item.createdAt)}
+                  </TableCell>
+                  <TableCell className="min-w-0 w-[18%]">
+                    <Dropdown>
+                      <DropdownTrigger>
+                        <Button
+                          isIconOnly
+                          variant="light"
+                          size="sm"
+                          className="min-w-0"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu aria-label="Job actions">
+                        <DropdownItem
+                          key="download"
+                          startContent={<Download className="h-4 w-4" />}
+                          isDisabled={item.status !== "completed"}
+                          onPress={() =>
+                            handleDownload(item.id, item.format)
+                          }
+                        >
+                          Download
+                        </DropdownItem>
+                        <DropdownItem
+                          key="preview"
+                          startContent={<Eye className="h-4 w-4" />}
+                          isDisabled={item.status !== "completed"}
+                          onPress={() => handlePreview(item)}
+                        >
+                          Preview
+                        </DropdownItem>
+                        <DropdownItem
+                          key="remove"
+                          color="danger"
+                          className="text-danger"
+                          startContent={<Trash2 className="h-4 w-4" />}
+                          onPress={() => handleDeleteJob(item)}
+                        >
+                          Remove from history
+                        </DropdownItem>
+                      </DropdownMenu>
+                    </Dropdown>
+                  </TableCell>
+                </TableRow>
+              )
+            }
           </TableBody>
         </Table>
       </div>
@@ -371,6 +373,58 @@ export default function HistoryPage() {
             {!previewLoading && !previewError && previewData && previewJob && (
               <PreviewContent data={previewData} format={previewJob.format} />
             )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        isOpen={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) {
+            setJobToDelete(null);
+          }
+        }}
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            Remove conversion from history?
+          </ModalHeader>
+          <ModalBody className="space-y-4 pb-6">
+            <p className="text-sm text-default-600">
+              This will permanently remove this conversion from your history.
+            </p>
+            <ul className="list-disc space-y-1 pl-5 text-xs text-default-500">
+              <li>
+                Any associated source and export files in cloud storage may be
+                deleted.
+              </li>
+              <li>Coins used for this conversion are not refunded.</li>
+              <li>
+                Files you already downloaded to your computer will not be
+                affected.
+              </li>
+            </ul>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="flat"
+                size="sm"
+                onPress={() => {
+                  setDeleteOpen(false);
+                  setJobToDelete(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                color="danger"
+                size="sm"
+                onPress={confirmDeleteJob}
+                isLoading={deleteJobMutation.isPending}
+              >
+                Remove
+              </Button>
+            </div>
           </ModalBody>
         </ModalContent>
       </Modal>

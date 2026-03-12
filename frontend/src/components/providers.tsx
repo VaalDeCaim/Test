@@ -27,7 +27,7 @@ export function Providers({children}: ProvidersProps) {
         navigate={(path) => router.push(String(path))}
         validationBehavior="native"
       >
-        <ToastProvider />
+        <ToastProvider placement="top-right" toastOffset={30} />
         <QueryClientProvider client={queryClient}>
           {children}
         </QueryClientProvider>

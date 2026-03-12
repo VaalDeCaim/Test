@@ -26,6 +26,8 @@ file_size_limit = "50MiB"
 verify_jwt = false
 [functions.jobs-create]
 verify_jwt = false
+[functions.job-delete]
+verify_jwt = false
 [functions.exports-download]
 verify_jwt = false
 [functions.exports-preview]
@@ -36,6 +38,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.delete-user]
 verify_jwt = false
+
 
 [auth]
 site_url = "http://localhost:3000"

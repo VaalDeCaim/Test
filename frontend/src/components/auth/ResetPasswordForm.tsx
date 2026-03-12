@@ -11,6 +11,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordInput,
 } from "@/lib/validations/auth";
+import {resetPasswordDefaultValues} from "@/lib/demo-auth-defaults";
 
 const labelClass = "text-xs font-medium text-default-700";
 
@@ -25,10 +26,7 @@ export function ResetPasswordForm() {
     formState: {errors},
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: resetPasswordDefaultValues,
   });
 
   const onSubmit = async (data: ResetPasswordInput) => {

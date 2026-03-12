@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Card, CardBody, Input } from "@heroui/react";
-import { setDevUserCookie } from "@/lib/auth-config";
-import { getSupabaseClient } from "@/lib/supabase/client";
-import { useSignInMutation, EmailNotConfirmedError } from "@/lib/queries/use-auth";
-import { loginSchema, type LoginInput } from "@/lib/validations/auth";
+import {useState} from "react";
+import {useRouter} from "next/navigation";
+import {useForm, Controller} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
+import {Button, Card, CardBody, Input} from "@heroui/react";
+import {setDevUserCookie} from "@/lib/auth-config";
+import {getSupabaseClient} from "@/lib/supabase/client";
+import {
+  useSignInMutation,
+  EmailNotConfirmedError,
+} from "@/lib/queries/use-auth";
+import {loginSchema, type LoginInput} from "@/lib/validations/auth";
+import {loginDefaultValues} from "@/lib/demo-auth-defaults";
 
 const labelClass = "text-xs font-medium text-default-700";
 
@@ -23,10 +27,7 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "vaal.de.caim@gmail.com",
-      password: "password123!",
-    },
+    defaultValues: loginDefaultValues,
   });
 
   const onSubmit = (data: LoginInput) => {

@@ -9,6 +9,7 @@ import {setDevUserCookie} from "@/lib/auth-config";
 import {getSupabaseClient} from "@/lib/supabase/client";
 import {useSignUpMutation} from "@/lib/queries/use-auth";
 import {signupSchema, type SignupInput} from "@/lib/validations/auth";
+import {signupDefaultValues} from "@/lib/demo-auth-defaults";
 
 const labelClass = "text-xs font-medium text-default-700";
 
@@ -24,13 +25,7 @@ export function SignupForm() {
     formState: {errors},
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
-    defaultValues: {
-      name: "Test User",
-      email: "vaal.de.caim@gmail.com",
-      password: "password123!",
-      confirmPassword: "password123!",
-      terms: true,
-    },
+    defaultValues: signupDefaultValues,
   });
 
   const onSubmit = async (data: SignupInput) => {
